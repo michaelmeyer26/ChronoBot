@@ -9,7 +9,6 @@ using UnitConversion;
 namespace ChronoBot
 {
 
-    [Group("chrono")]
     public class ChronoModule : ModuleBase<SocketCommandContext>
     {
         [Command("commands")]
@@ -27,7 +26,7 @@ namespace ChronoBot
                 "- !convert mass: Converts a mass from one unit of measure into another. Must match format exactly!\nFormat: !convert mass (value) (original unit of measure) (target unit of measure)\n !masses will give you valid units of measure.\n" +
                 "Example: !convert mass 50 lb kg\n\n" +
                 "- !convert temperature: Converts a temperature from one unit of measure into another. Must match format exactly!\nFormat: !convert temperature (value) (original unit of measure) (target unit of measure)\n !temperatures will give you valid units of measure.\n" +
-                "Example: !convert temperature 100 fahrenheit celcius\n\n" +
+                "Example: !convert temperature 100 fahrenheit celsius\n\n" +
                 "- !convert volume: Converts a volume from one unit of measure into another. Must match format exactly!\nFormat: !convert volume (value) (original unit of measure) (target unit of measure)\n !volumes will give you valid units of measure.\n" +
                 "Example: !convert volume 1 L \"imperial gallon\"";
             await Context.Channel.SendMessageAsync(commandMessage);
