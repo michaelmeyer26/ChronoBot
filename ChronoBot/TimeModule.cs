@@ -144,6 +144,7 @@ namespace ChronoBot
             }
             catch (Exception ex)
             {
+                await ReplyAsync(ex.ToString());
                 await ReplyAsync("There was an issue, please check your command and try again.");
             }
         }
