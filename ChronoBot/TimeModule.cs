@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord.Commands;
+using NodaTime;
 using UnitConversion;
 
 namespace ChronoBot
@@ -20,7 +21,7 @@ namespace ChronoBot
                 "- !ping: plays ping pong\n\n" +
                 "- !pong: plays ping pong\n\n" +
                 "- !convert time: Converts a DateTime into the other timezones in our server. Must match format exactly!\nFormat: !convert time year(4 digits) month(2 digits) day(2 digits) hour(2 digits, 24-hour scale) minute(2 digits) (timezone name)\n !timezones will give you valid timezones.\n" +
-                "Example: !convert time 2021 08 10 13 30 \"Central Standard Time\"\n\n" +
+                "Example: !convert time 2021 08 10 13 30 US/Central\n\n" +
                 "- !convert distance: Converts a distance from one unit of measure into another. Must match format exactly!\nFormat: !convert distance (value) (original unit of measure) (target unit of measure)\n !distances will give you valid units of measure.\n" +
                 "Example: !convert distance 100 metre ft\n\n" +
                 "- !convert mass: Converts a mass from one unit of measure into another. Must match format exactly!\nFormat: !convert mass (value) (original unit of measure) (target unit of measure)\n !masses will give you valid units of measure.\n" +
@@ -36,7 +37,7 @@ namespace ChronoBot
     public class InfoModule : ModuleBase<SocketCommandContext>
     {
         [Command("timezones")]
-        public async Task ListTimezonesAsync() => await ReplyAsync("The current valid timezones are: GMT Standard Time\nEastern Standard Time\nCentral Standard Time");
+        public async Task ListTimezonesAsync() => await ReplyAsync("The current valid timezones are: Europe/London\nUS/Eastern\nUS/Central");
 
         [Command("distances")]
         public async Task ListDistanceUOMsAsync()
@@ -122,23 +123,29 @@ namespace ChronoBot
         {
             try
             {
-                DateTime suppliedTime = new DateTime(year, month, day, hour, minute, 0);
-
+                var tzProvider = DateTimeZoneProviders.Tzdb;
                 var ourZones = new List<string>(){
-                "GMT Standard Time",
-                "Eastern Standard Time",
-                "Central Standard Time"
+                    "Europe/London",
+                    "US/Eastern",
+                    "US/Central"
                 };
 
-                var timeMessage = String.Format("{0:t} in {1} on {0:d} is:\n", suppliedTime, timeZoneName);
+                LocalDateTime suppliedTime = new LocalDateTime(year, month, day, hour, minute);
+                var providedTime = suppliedTime.InZoneLeniently(tzProvider[timeZoneName]);
+                var providedInstant = providedTime.ToInstant();
+
+                var timeMessage = String.Format("{0} on {1} in {2} is:\n\n", suppliedTime.TimeOfDay, suppliedTime.Date, timeZoneName);
 
                 foreach (var zone in ourZones)
                 {
                     if (timeZoneName != zone)
                     {
-                        timeMessage += String.Format("~ {0:t} in {1}\n", TimeZoneInfo.ConvertTimeBySystemTimeZoneId(suppliedTime, timeZoneName, zone), zone);
+                        var convertedZone = new ZonedDateTime(providedInstant, tzProvider[zone]);
+                        timeMessage += String.Format("-{0} on {1} in {2}\n", convertedZone.TimeOfDay, convertedZone.Date, zone);
                     }
                 }
+
+                Console.WriteLine(timeMessage);
 
                 await ReplyAsync(timeMessage);
             }
@@ -155,8 +162,6 @@ namespace ChronoBot
         {
             try
             {
-
-
                 var converter = new DistanceConverter(originalUnit, targetUnit);
 
                 var message = $"{value} {originalUnit} is: {converter.LeftToRight(value)} {targetUnit}";
