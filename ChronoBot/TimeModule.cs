@@ -202,6 +202,10 @@ namespace ChronoBot
         {
             try
             {
+                EmbedBuilder embedBuilder = new EmbedBuilder();
+
+
+
                 var tzProvider = DateTimeZoneProviders.Tzdb;
                 var ourZones = new List<string>(){
                     "Europe/London",
@@ -213,20 +217,21 @@ namespace ChronoBot
                 var providedTime = suppliedTime.InZoneLeniently(tzProvider[timeZoneName]);
                 var providedInstant = providedTime.ToInstant();
 
-                var timeMessage = String.Format("{0} on {1} in {2} is:\n\n", suppliedTime.TimeOfDay, suppliedTime.Date, timeZoneName);
-
                 foreach (var zone in ourZones)
                 {
                     if (timeZoneName != zone)
                     {
                         var convertedZone = new ZonedDateTime(providedInstant, tzProvider[zone]);
-                        timeMessage += String.Format("-{0} on {1} in {2}\n", convertedZone.TimeOfDay, convertedZone.Date, zone);
+                        var convertedTimeOfDay = convertedZone.Hour < 12 ? "AM" : "PM";
+                        var embedMessage = String.Format("{0}:{1:00} {2} on {3}", convertedZone.ClockHourOfHalfDay, convertedZone.Minute, convertedTimeOfDay, convertedZone.Date);
+
+                        embedBuilder.AddField(zone, embedMessage);
                     }
                 }
+                var suppliedTimeOfDay = suppliedTime.Hour < 12 ? "AM" : "PM";
+                var titleMessage = String.Format("In the other timezones, {0}:{1:00} {2} on {3} in {4} is: ", suppliedTime.ClockHourOfHalfDay, suppliedTime.Minute, suppliedTimeOfDay, suppliedTime.Date, timeZoneName);
 
-                Console.WriteLine(timeMessage);
-
-                await ReplyAsync(timeMessage);
+                await ReplyAsync(titleMessage, false, embedBuilder.Build());
             }
             catch (Exception ex)
             {
