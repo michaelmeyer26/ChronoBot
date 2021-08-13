@@ -8,6 +8,6 @@ namespace ChronoBot.Models
 {
     public class Cat
     {
-        public string File { get; set; }
+        public string Url { get; set; }
     }
 }
