@@ -1,45 +1,132 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using ChronoBot.Models;
+using Discord;
 using Discord.Commands;
+using Newtonsoft.Json;
 using NodaTime;
 using UnitConversion;
 
 namespace ChronoBot
 {
-
+[Group("stodgy")]
     public class ChronoModule : ModuleBase<SocketCommandContext>
     {
-        [Command("commands")]
-        [Summary("Provides a summary for all commands")]
-        public async Task CommandSummary()
+        private readonly CommandService _commands;
+
+        public ChronoModule(CommandService commands)
         {
-            var commandMessage = "Valid commands:\n" +
-                "- !say: repeats whatever comes after the command\n\n" +
-                "- !ping: plays ping pong\n\n" +
-                "- !pong: plays ping pong\n\n" +
-                "- !convert time: Converts a DateTime into the other timezones in our server. Must match format exactly!\nFormat: !convert time year(4 digits) month(2 digits) day(2 digits) hour(2 digits, 24-hour scale) minute(2 digits) (timezone name)\n !timezones will give you valid timezones.\n" +
-                "Example: !convert time 2021 08 10 13 30 US/Central\n\n" +
-                "- !convert distance: Converts a distance from one unit of measure into another. Must match format exactly!\nFormat: !convert distance (value) (original unit of measure) (target unit of measure)\n !distances will give you valid units of measure.\n" +
-                "Example: !convert distance 100 metre ft\n\n" +
-                "- !convert mass: Converts a mass from one unit of measure into another. Must match format exactly!\nFormat: !convert mass (value) (original unit of measure) (target unit of measure)\n !masses will give you valid units of measure.\n" +
-                "Example: !convert mass 50 lb kg\n\n" +
-                "- !convert temperature: Converts a temperature from one unit of measure into another. Must match format exactly!\nFormat: !convert temperature (value) (original unit of measure) (target unit of measure)\n !temperatures will give you valid units of measure.\n" +
-                "Example: !convert temperature 100 fahrenheit celsius\n\n" +
-                "- !convert volume: Converts a volume from one unit of measure into another. Must match format exactly!\nFormat: !convert volume (value) (original unit of measure) (target unit of measure)\n !volumes will give you valid units of measure.\n" +
-                "Example: !convert volume 1 L \"imperial gallon\"";
-            await Context.Channel.SendMessageAsync(commandMessage);
+            _commands = commands;
+        }
+
+        [Command("help")]
+        [Summary("Displays a summary of available commands")]
+        public async Task Help()
+        {
+            List<ModuleInfo> modules = _commands.Modules.ToList();
+            EmbedBuilder embedBuilder = new EmbedBuilder();
+
+            foreach (var module in modules)
+            {
+                foreach(var command in module.Commands)
+                {
+                    if (String.IsNullOrEmpty(module.Group)) {
+                        // Get the command Summary attribute information
+                        string embedFieldText = command.Summary ?? "No description available\n";
+
+                        embedBuilder.AddField(command.Name, embedFieldText);
+                    } 
+                    else
+                    {
+                        //get the complete command
+                        string embedFieldName = $"{module.Group} {command.Name}";
+                        // Get the command Summary attribute information
+                        string embedFieldText = command.Summary ?? "No description available\n";
+
+                        embedBuilder.AddField(embedFieldName, embedFieldText);
+                    }
+                }
+            }
+
+            await ReplyAsync("Here's a list of commands and their description: ", false, embedBuilder.Build());
+        }
+    }
+
+    public class FunModule : ModuleBase<SocketCommandContext>
+    {
+        [Command("ping")]
+        [Summary("Plays ping-pong")]
+        public async Task PingPongAsync() => await ReplyAsync("pong");
+
+        [Command("pong")]
+        [Summary("Plays more ping-pong")]
+        public async Task PongPingAsync() => await ReplyAsync("ping");
+
+        [Command("joke")]
+        [Summary("Tells a random joke")]
+        public async Task JokeAsync()
+        {
+            HttpClient client = new HttpClient();
+
+            var response = client.GetAsync("https://official-joke-api.appspot.com/jokes/random").Result;
+            string responseBody = response.Content.ReadAsStringAsync().Result;
+            var joke = JsonConvert.DeserializeObject<Joke>(responseBody);
+
+            await ReplyAsync($"{joke.Setup} {joke.Punchline}");
+        }
+
+        [Command("cat")]
+        [Summary("cat")]
+        public async Task GetCatAsync()
+        {
+            HttpClient client = new HttpClient();
+
+            var response = client.GetAsync("https://aws.random.cat/meow").Result;
+            var responseBody = response.Content.ReadAsStringAsync().Result;
+            var cat = JsonConvert.DeserializeObject<Cat>(responseBody);
+
+            await ReplyAsync(cat.File);
+        }
+
+        [Command("dog")]
+        [Summary("dog")]
+        public async Task GetDogAsync()
+        {
+            HttpClient client = new HttpClient();
+
+            var response = client.GetAsync("https://random.dog/woof.json").Result;
+            var responseBody = response.Content.ReadAsStringAsync().Result;
+            var dog = JsonConvert.DeserializeObject<Dog>(responseBody);
+
+            await ReplyAsync(dog.Url);
+        }
+
+        [Command("fox")]
+        [Summary("fox")]
+        public async Task GetFoxAsync()
+        {
+            HttpClient client = new HttpClient();
+
+            var response = client.GetAsync("https://randomfox.ca/floof/").Result;
+            var responseBody = response.Content.ReadAsStringAsync().Result;
+            var fox = JsonConvert.DeserializeObject<Fox>(responseBody);
+
+            await ReplyAsync(fox.Image);
         }
     }
 
     public class InfoModule : ModuleBase<SocketCommandContext>
     {
         [Command("timezones")]
+        [Summary("Gets valid timezones")]
         public async Task ListTimezonesAsync() => await ReplyAsync("The current valid timezones are: Europe/London\nUS/Eastern\nUS/Central");
 
         [Command("distances")]
+        [Summary("Gets valid distance units of measure")]
         public async Task ListDistanceUOMsAsync()
         {
             await ReplyAsync("The current valid units of measure for distance are:\n" +
@@ -54,6 +141,7 @@ namespace ChronoBot
         }
 
         [Command("masses")]
+        [Summary("Gets valid mass units of measure")]
         public async Task ListMassUOMsAsync()
         { 
             await ReplyAsync("The current valid mass units of measurement for mass are:\n" +
@@ -68,6 +156,7 @@ namespace ChronoBot
         }
 
         [Command("temperatures")]
+        [Summary("Gets valid temperature units of measure")]
         public async Task ListTemperatureUOMsAsync()
         {
             await ReplyAsync("The current valid units of measurement for temperature are:\n" +
@@ -77,6 +166,7 @@ namespace ChronoBot
         }
 
         [Command("volumes")]
+        [Summary("Gets valid volume units of measure")]
         public async Task ListVolumeUOMsAsync()
         {
             await ReplyAsync("The current valid units of measurement for volume are:\n" +
@@ -96,29 +186,11 @@ namespace ChronoBot
         }
     }
 
-    public class FunModule : ModuleBase<SocketCommandContext>
-    {
-        [Command("say")]
-        [Summary("Echoes a message.")]
-        public async Task SayAsync([Remainder] [Summary("The text to echo")] string echo)
-        {
-            await Context.Channel.SendMessageAsync(echo);
-        }
-
-        [Command("ping")]
-        [Summary("Plays ping-pong")]
-        public async Task PingPongAsync() => await ReplyAsync("pong");
-
-        [Command("pong")]
-        [Summary("Plays more ping-pong")]
-        public async Task PongPingAsync() => await ReplyAsync("ping");
-    }
-
     [Group("convert")]
     public class ConversionModule : ModuleBase<SocketCommandContext>
     {
         [Command("time")]
-        [Summary("Converts from one time zone to the others on the server")]
+        [Summary("Converts from one *valid* timezone to another.\nFormat: !convert time (year) (month) (day) (hour on 24-hour scale) (minute)\nExample: !convert time 2021 08 13 15 00 US/Central")]
         public async Task ConvertTimeAsync(int year, int month, int day, int hour, int minute, string timeZoneName)
         {
             try
@@ -157,7 +229,7 @@ namespace ChronoBot
         }
 
         [Command("distance")]
-        [Summary("Converts distance from the first specified unit to the second")]
+        [Summary("Converts from one *valid* distance to another.\nFormat: !convert distance (value) (original unit of measure) (target unit of measure)\nExample: !convert distance 10 metre feet")]
         public async Task ConvertDistanceAsync(double value, string originalUnit, string targetUnit)
         {
             try
@@ -175,7 +247,7 @@ namespace ChronoBot
         }
 
         [Command("mass")]
-        [Summary("Converts mass from the first specified unit to the second")]
+        [Summary("Converts from one *valid* mass to another.\nFormat: !convert mass (value) (original unit of measure) (target unit of measure)\nExample: !convert mass 25 lbs kg")]
         public async Task ConvertMassAsync(double value, string originalUnit, string targetUnit)
         {
             try
@@ -193,7 +265,7 @@ namespace ChronoBot
         }
 
         [Command("temperature")]
-        [Summary("Converts temperature from the first specified unit to the second")]
+        [Summary("Converts from one *valid* temperature to another.\nFormat: !convert temperature (value) (original unit of measure) (target unit of measure)\nExample: !convert temperature 100 fahrenheit celsius")]
         public async Task ConvertTemperatureAsync(double value, string originalUnit, string targetUnit)
         {
             try
@@ -211,7 +283,7 @@ namespace ChronoBot
         }
 
         [Command("volume")]
-        [Summary("Converts volume from the first specified unit to the second")]
+        [Summary("Converts from one *valid* volume to another.\nFormat: !convert volume (value) (original unit of measure) (target unit of measure)\nExample: !convert volume 20 L \"imperial gallon\"")]
         public async Task ConvertVolumeAsync(double value, string originalUnit, string targetUnit)
         {
             try
@@ -227,7 +299,5 @@ namespace ChronoBot
                 await ReplyAsync("There was an issue, please check your command and try again.");
             }
         }
-
-
     }
 }
