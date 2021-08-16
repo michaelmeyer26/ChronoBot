@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using ChronoBot.Models;
+using ChronoBot.Services;
 using Discord;
 using Discord.Commands;
 using Newtonsoft.Json;
@@ -13,7 +14,7 @@ using UnitConversion;
 
 namespace ChronoBot
 {
-[Group("stodgy")]
+    [Group("chrono")]
 
     public class ChronoModule : ModuleBase<SocketCommandContext>
     {
@@ -59,7 +60,12 @@ namespace ChronoBot
 
     public class FunModule : ModuleBase<SocketCommandContext>
     {
-        private static readonly HttpClient _client = new HttpClient();
+        private readonly HttpService _http;
+
+        public FunModule(HttpService http)
+        {
+            _http = http;
+        }
 
         [Command("ping")]
         [Summary("Plays ping-pong")]
@@ -73,7 +79,7 @@ namespace ChronoBot
         [Summary("Tells a random joke")]
         public async Task JokeAsync()
         {
-            var response = _client.GetAsync("https://official-joke-api.appspot.com/jokes/random").Result;
+            var response = _http.Client.GetAsync("https://official-joke-api.appspot.com/jokes/random").Result;
             string responseBody = response.Content.ReadAsStringAsync().Result;
             var joke = JsonConvert.DeserializeObject<Joke>(responseBody);
 
@@ -84,30 +90,18 @@ namespace ChronoBot
         [Summary("cat")]
         public async Task GetCatAsync()
         {
-            var response = _client.GetAsync("https://cataas.com/cat?json=true").Result;
+            var response = _http.Client.GetAsync("https://cataas.com/cat?json=true").Result;
             var responseBody = response.Content.ReadAsStringAsync().Result;
             var cat = JsonConvert.DeserializeObject<Cat>(responseBody);
 
             await ReplyAsync("https://cataas.com/" + cat.Url);
         }
 
-        /*[Command("cat gif")]
-        [Summary("cat gif")]
-        public async Task GetCatGifAsync()
-        {
-            var response = _client.GetAsync("https://cataas.com/cat/gif?json=true").Result;
-            var responseBody = response.Content.ReadAsStringAsync().Result;
-            var cat = JsonConvert.DeserializeObject<Cat>(responseBody);
-
-            await ReplyAsync("https://cataas.com/" + cat.Url);
-        }*/
-
-
         [Command("dog")]
         [Summary("dog")]
         public async Task GetDogAsync()
         {
-            var response = _client.GetAsync("https://random.dog/woof.json").Result;
+            var response = _http.Client.GetAsync("https://random.dog/woof.json").Result;
             var responseBody = response.Content.ReadAsStringAsync().Result;
             var dog = JsonConvert.DeserializeObject<Dog>(responseBody);
 
@@ -118,7 +112,7 @@ namespace ChronoBot
         [Summary("fox")]
         public async Task GetFoxAsync()
         {
-            var response = _client.GetAsync("https://randomfox.ca/floof/").Result;
+            var response = _http.Client.GetAsync("https://randomfox.ca/floof/").Result;
             var responseBody = response.Content.ReadAsStringAsync().Result;
             var fox = JsonConvert.DeserializeObject<Fox>(responseBody);
 
