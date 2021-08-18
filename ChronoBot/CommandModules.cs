@@ -187,6 +187,46 @@ namespace ChronoBot
         }
     }
 
+    public class ReminderModule : ModuleBase<SocketCommandContext>
+    {
+        [Command("remindus", RunMode = RunMode.Async)]
+        [Summary("Creates a series of reminders for an upcoming event.\nFormat: !remindus (event name, wrapped in \" \" if more than one word) (year) (month) (day) (hour, 24-hour scale) (minute) (timezone) \nExample: !remindus D&D 2021 08 28 13 00 US/Central")]
+        public async Task SessionReminderAsync(string eventName, int year, int month, int day, int hour, int minute, string timeZoneName)
+        {
+            try
+            {
+                var tzProvider = DateTimeZoneProviders.Tzdb;
+
+                LocalDateTime suppliedTime = new LocalDateTime(year, month, day, hour, minute);
+                var zonedSuppliedTime = suppliedTime.InZoneLeniently(tzProvider[timeZoneName]);
+                var twelveHoursBefore = zonedSuppliedTime.PlusMilliseconds(-43200000);
+
+                var systemClock = SystemClock.Instance;
+                var now = new ZonedDateTime(systemClock.GetCurrentInstant(), tzProvider[timeZoneName]);
+
+                //get millisecond intervals between now and two hours before
+                var timeUntilFirstReminder = twelveHoursBefore.ToInstant() - now.ToInstant();
+
+                await ReplyAsync("Reminder set!");
+
+                //Task.delay that long, send 12 hour message
+                await Task.Delay((int)timeUntilFirstReminder.TotalMilliseconds); //this whole thing is stupid, use events/event handlers instead?
+                await ReplyAsync($"Twelve hours until {eventName}!");
+                //Task.delay 3600000 and send 1-hour warning
+                await Task.Delay(39600000);
+                await ReplyAsync($"One hour until {eventName} starts! Get HYPE!");
+                //task.delay 2700000 and send 15 min warning
+                await Task.Delay(2700000);
+                await ReplyAsync($"15 minute warning, finish any last-minute prep!");
+            } 
+            catch (Exception e)
+            {
+                await ReplyAsync("Something broke. sadface.");
+                await ReplyAsync(e.Message);
+            }
+        }
+    }
+
     [Group("convert")]
     public class ConversionModule : ModuleBase<SocketCommandContext>
     {
@@ -197,8 +237,6 @@ namespace ChronoBot
             try
             {
                 EmbedBuilder embedBuilder = new EmbedBuilder();
-
-
 
                 var tzProvider = DateTimeZoneProviders.Tzdb;
                 var ourZones = new List<string>(){
